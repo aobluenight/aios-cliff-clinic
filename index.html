@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>悬崖医馆 v1 · 峭壁上的瘟疫医院</title>
+<style>
+:root{
+  --bg:#0e141b; --panel:#16202b; --panel2:#1c2836; --line:#2c3d50;
+  --tx:#d8e4ef; --dim:#8aa0b5; --gold:#e0b05c; --red:#e06c5c; --green:#6cc98a;
+  --wood:#a5713f; --accent:#5cb8e0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:"Microsoft YaHei",system-ui,sans-serif;font-size:14px;line-height:1.55;
+  background-image:radial-gradient(ellipse at 70% -10%,#1b2a3a 0%,var(--bg) 60%);min-height:100vh}
+.wrap{max-width:1060px;margin:0 auto;padding:14px}
+h1{font-size:20px;color:var(--gold);letter-spacing:2px}
+.sub{color:var(--dim);font-size:12px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:400px 1fr;gap:12px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.card h3{font-size:13px;color:var(--accent);margin-bottom:8px;letter-spacing:1px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.stat b{display:block;font-size:16px}
+.stat span{font-size:11px;color:var(--dim)}
+.stat.warn b{color:var(--red)}
+button{background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;cursor:pointer;font-size:13px;width:100%;text-align:left;transition:.15s}
+button:hover:not(:disabled){border-color:var(--accent);background:#223348}
+button:disabled{opacity:.38;cursor:not-allowed}
+button.act{margin-bottom:6px}
+button.main{border-color:var(--gold);color:var(--gold);text-align:center;font-weight:bold}
+button.treat{width:auto;padding:3px 10px;font-size:12px;border-radius:6px}
+.cost{color:var(--dim);font-size:11px;float:right}
+.pt{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sev{font-size:11px;color:var(--red);white-space:nowrap}
+.tag{font-size:11px;color:var(--dim)}
+#log{max-height:260px;overflow-y:auto;font-size:12.5px}
+#log p{padding:3px 0;border-bottom:1px dashed #223242}
+#log .evt{color:var(--gold)} #log .bad{color:var(--red)} #log .good{color:var(--green)}
+svg{width:100%;height:auto;display:block;border-radius:10px;background:#0a1119}
+.bmenu{display:none;border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+.bmenu.show{display:block}
+.mask{position:fixed;inset:0;background:rgba(5,10,16,.88);display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
+.mask.show{display:flex}
+.endbox{background:var(--panel);border:1px solid var(--gold);border-radius:14px;max-width:640px;max-height:86vh;overflow-y:auto;padding:24px}
+.endbox h2{color:var(--gold);margin-bottom:10px;letter-spacing:3px}
+.endbox p{margin-bottom:10px}
+.chron{font-size:12.5px;color:var(--dim)}
+.chron p{padding:2px 0}
+.re{background:var(--gold);color:#1a1206;border:none;font-weight:bold;text-align:center;margin-top:14px}
+.notice{font-size:12px;color:var(--dim);margin-top:4px}
+.fx{display:inline-block;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:4px;background:#3a2a20;color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>悬崖医馆 <span style="font-size:12px;color:var(--dim)">v1</span></h1>
+  <div class="sub">地面已成死亡禁区——毒气弥漫，鼠疫肆虐。你在峭壁上钉下木板，救下一个人，奇迹就继续一天。</div>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>状态 · 第 <span id="d">1</span> 天 <span id="fx"></span></h3>
+        <div class="stats">
+          <div class="stat"><b id="v_ap">3</b><span>行动点</span></div>
+          <div class="stat"><b id="v_wood">6</b><span>木板</span></div>
+          <div class="stat"><b id="v_nail">4</b><span>铁钉</span></div>
+          <div class="stat"><b id="v_rope">2</b><span>绳索</span></div>
+          <div class="stat"><b id="v_herb">3</b><span>草药</span></div>
+          <div class="stat"><b id="v_food">5</b><span>口粮</span></div>
+          <div class="stat" id="st_rep"><b id="v_rep">10</b><span>声望</span></div>
+          <div class="stat"><b id="v_cured">0</b><span>治愈</span></div>
+          <div class="stat" id="st_dead"><b id="v_dead">0</b><span>殁者</span></div>
+        </div>
+        <div class="notice">层 <span id="v_layer">1</span>/7 · 床位 <span id="v_bed">1</span> · 声望归零=栈道再无人来</div>
+      </div>
+      <div class="card">
+        <h3>今日行动</h3>
+        <button class="act" id="a_herb" onclick="act('herb')">🌿 采药<span class="cost">1行动点</span></button>
+        <button class="act" id="a_trade" onclick="act('trade')">🔄 与崖顶换物资<span class="cost">1行动点·声望2</span></button>
+        <button class="act" id="a_rescue" onclick="act('rescue')">🪢 深降搜救<span class="cost">1行动点·绳索1</span></button>
+        <button class="act" id="a_build" onclick="toggleBuild()">🔨 建造 / 扩建<span class="cost">1行动点+材料</span></button>
+        <div class="bmenu" id="bmenu"></div>
+        <div style="height:8px"></div>
+        <button class="main" onclick="endDay()">🌙 结束今天 · 入夜</button>
+      </div>
+      <div class="card">
+        <h3>栈道上的病人 <span id="pcount" style="color:var(--dim)"></span></h3>
+        <div id="patients"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><h3>崖壁剖面 · 医馆在长高</h3><div id="scene"></div></div>
+      <div class="card"><h3>医馆日志</h3><div id="log"></div></div>
+    </div>
+  </div>
+</div>
+<div class="mask" id="mask"><div class="endbox" id="endbox"></div></div>
+
+<script>
+"use strict";
+const NAMES=["阿禾","老崔","春妮","石匠张","小满","哑叔","柳婶","栓子","白先生","货郎周","阿蛮","陈郎中","秀姑","铁蛋","蓝布衫","赶山人","半仙","细妹","老盐工","货栈少东"];
+const R={wood:"木板",nail:"铁钉",rope:"绳索",herb:"草药",food:"口粮"};
+const B={
+ herbrack:{n:"草药架",c:{wood:3},d:"每天自带 +1 草药",once:1},
+ walkway:{n:"栈道延伸",c:{wood:4,nail:2},d:"病人来得多，治愈声望 +1",once:1},
+ ropestation:{n:"绳降台",c:{wood:4,rope:2},d:"解锁「深降搜救」",once:1},
+ ward:{n:"病房",c:{wood:5,nail:3},d:"+2 床位，病人夜里有机会好转",once:1},
+ pharmacy:{n:"药庐",c:{wood:6,nail:4,herb:4},d:"治疗成功率 +25%，并免疫疫变",once:1},
+ tower:{n:"向上叠楼",c:{wood:6,nail:4,rope:2},d:"+1 层 +1 床位，每两层 +1 行动点",max:7},
+};
+const LNAMES=["破木屋","悬空医馆","悬楼·一层","悬楼·二层","悬楼·三层","悬楼·四层","悬崖圣馆"];
+let S;
+function rnd(n){return Math.floor(Math.random()*n)}
+function pick(a){return a[rnd(a.length)]}
+function r100(){return rnd(100)}
+function costStr(c){return Object.keys(c).map(k=>R[k]+"×"+c[k]).join(" ")}
+
+function newGame(){
+ S={day:1,ap:3,maxAp:3,wood:6,nail:4,rope:2,herb:3,food:5,rep:10,
+    cured:0,dead:0,beds:1,layers:1,patients:[],built:{},
+    gas:0,plague:0,weak:0,chron:[],over:false};
+ S.chron.push("第1天｜地面成了死地。我在崖壁钉下三块木板，挂出一块褪色的木牌——医馆。");
+ log("你在峭壁上钉下第一块木板。风很大，但牌子挂住了。");
+ render();
+}
+function log(t,cls){S._log=S._log||[];S._log.unshift({t,cls});if(S._log.length>60)S._log.pop()}
+
+function canPay(c){return Object.keys(c).every(k=>S[k]>=c[k])}
+function pay(c){for(const k in c)S[k]-=c[k]}
+function gain(g){for(const k in g)S[k]=(S[k]||0)+g[k]}
+
+function act(kind){
+ if(S.over||S.ap<1)return;
+ if(kind==="herb"){
+   if(S.gas>0){log("毒气封锁了下层岩缝，采不得。","bad");return}
+   S.ap--;const n=2+rnd(3);S.herb+=n;
+   if(r100()<30){S.wood++;log("你腰系旧绳荡下岩缝，采回 "+n+" 把草药，还捎了块冲积在石缝里的好木板。","good");}
+   else log("你腰系旧绳荡下岩缝，采回 "+n+" 把草药。","good");
+ }else if(kind==="trade"){
+   if(S.rep<2){log("声望不够，崖顶的人不肯跟你换。","bad");return}
+   S.ap--;S.rep-=2;
+   const g={};const pool=["wood","wood","wood","nail","nail","rope","food","food"];
+   g[pool[rnd(pool.length)]]=1+rnd(3);g[pool[rnd(pool.length)]]=1+rnd(2);
+   gain(g);log("吊篮从崖顶缓缓放下，换回 "+Object.keys(g).map(k=>R[k]+"×"+g[k]).join("、")+"。");
+ }else if(kind==="rescue"){
+   if(!S.built.ropestation)return;
+   if(S.rope<1){log("没有备用绳索了，谁也不敢往下荡。","bad");return}
+   if(S.patients.length>=S.beds+2){log("栈道已经站满了，救上来也没地方安置。","bad");return}
+   S.ap--;S.rope--;const d=r100();
+   if(d<55){const nm=pick(NAMES);S.patients.push({n:nm,sev:1+rnd(2),from:"搜救"});
+     const g={};g[pick(["wood","nail","food","herb"])]=1+rnd(2);gain(g);
+     log("绳降队从毒雾里拖回来一个还有气的人——"+nm+"，还捎回 "+Object.keys(g).map(k=>R[k]+"×"+g[k]).join("、")+"。","good");
+     S.chron.push("第"+S.day+"天｜搜救队从死亡禁区救回"+nm+"。");
+   }else if(d<85){const g={};g[pick(["wood","nail","food"])]=1+rnd(3);gain(g);
+     log("没找到活人，但捡回一批遗物："+Object.keys(g).map(k=>R[k]+"×"+g[k]).join("、")+"。");
+   }else{S.food=Math.max(0,S.food-2);S.rep=Math.max(0,S.rep-1);
+     log("绳子在中途磨毛了，下来的人空着手，还折了两天口粮。","bad");}
+ }else if(kind==="build"){toggleBuild();return}
+ render();
+}
+
+function toggleBuild(){const m=document.getElementById("bmenu");m.classList.toggle("show");renderBuild()}
+
+function renderBuild(){
+ const m=document.getElementById("bmenu");let h="";
+ for(const k in B){const b=B[k];
+  if(b.once&&S.built[k])continue;
+  if(k==="tower"&&S.layers>=7)continue;
+  const ok=canPay(b.c)&&S.ap>0&&!S.over;
+  h+='<button class="act" '+(ok?"":"disabled")+' onclick="build(\''+k+'\')">'+b.n+
+    '<span class="cost">'+costStr(b.c)+'</span><br><span class="tag">'+b.d+'</span></button>';
+ }
+ if(!h)h='<div class="notice">能建的都建完了。</div>';
+ m.innerHTML=h;
+}
+
+function build(k){
+ if(S.over||S.ap<1)return;const b=B[k];
+ if(!canPay(b.c)){log("材料不够。","bad");render();return}
+ S.ap--;pay(b.c);
+ if(k==="tower"){
+   S.layers++;S.beds++;
+   if(S.layers%2===1){S.maxAp++;S.ap=S.maxAp}
+   log("钉板声叮叮当当响了整日——医馆向上叠出了第 "+S.layers+" 层「"+LNAMES[S.layers-1]+"」。","good");
+   S.chron.push("第"+S.day+"天｜医馆叠到第"+S.layers+"层（"+LNAMES[S.layers-1]+"），栈道又向上接了一截。");
+ }else{
+   S.built[k]=1;
+   if(k==="ward")S.beds+=2;
+   log("「"+b.n+"」建成了："+b.d+"。","good");
+   S.chron.push("第"+S.day+"天｜建成"+b.n+"。");
+ }
+ checkEnd();render();
+}
+
+function treat(i){
+ if(S.over||S.ap<1)return;const p=S.patients[i];if(!p)return;
+ if(S.herb<2){log("草药不够两副。","bad");render();return}
+ S.ap--;S.herb-=2;
+ let ch=60+S.layers*5-(p.sev-1)*15;
+ if(S.built.pharmacy)ch+=25;
+ if(S.plague>0&&!S.built.pharmacy)ch-=20;
+ const d=r100();
+ if(d<ch){
+   S.patients.splice(i,1);S.cured++;S.rep+=3+(S.built.walkway?1:0);
+   log(p.n+" 退了热，自己扶着栏杆走下了栈道。治愈 +1，声望涨了。","good");
+   if(S.cured%10===0)S.chron.push("第"+S.day+"天｜累计治愈突破"+S.cured+"人，崖顶的人开始叫这里「"+LNAMES[S.layers-1]+"」。");
+ }else{
+   p.sev=Math.min(5,p.sev+1);
+   log("药石罔效……"+p.n+"的病更重了。","bad");
+ }
+ checkEnd();render();
+}
+
+function endDay(){
+ if(S.over)return;
+ if(S.gas>0&&S.ap>0){log("（还有行动点没用——毒气天里，能多做一件事是一件事。）")}
+ // 口粮
+ const need=1+Math.floor(S.patients.length/2);
+ if(S.food>=need){S.food-=need}
+ else{S.food=0;S.rep-=1;log("夜里锅是空的。饥饿在木板房里蔓延，有人骂骂咧咧地走了。","bad");
+   if(S.patients.length){const p=pick(S.patients);p.sev=Math.min(5,p.sev+1)}}
+ // 病情
+ for(let i=S.patients.length-1;i>=0;i--){const p=S.patients[i];
+   if(S.built.ward&&p.sev>1&&r100()<40){p.sev--;log(p.n+"在病房里睡了个好觉，脸色好看了些。","good");}
+   else p.sev++;
+   if(p.sev>4){const nm=p.n;S.patients.splice(i,1);S.dead++;S.rep-=2;
+     log(nm+"没能撑过这一夜。尸体按规矩从崖边送了下去。","bad");
+     S.chron.push("第"+S.day+"天｜"+nm+"殁。那晚栈道的灯亮到天明。");}
+ }
+ // 草药架
+ if(S.built.herbrack)S.herb++;
+ // 新病人
+ if(S.patients.length<S.beds+2){
+   let ch=70+(S.built.walkway?20:0)-(S.weak?35:0);
+   if(r100()<ch){
+     let n=1+(S.built.walkway?rnd(2):0);
+     while(n-->0&&S.patients.length<S.beds+2){
+       const nm=pick(NAMES);S.patients.push({n:nm,sev:1+rnd(2),from:"栈道"});
+       log("天亮前，栈道上又传来敲门声——"+nm+"踩着摇晃的木板来了。");
+     }
+   }
+ }else{S.rep=Math.max(0,S.rep-1);log("栈道已经站满，山下来的人看了看，摇头走了。","bad")}
+ // 计时
+ if(S.gas>0)S.gas--; if(S.plague>0)S.plague--; if(S.weak>0)S.weak--;
+ // 新的一天
+ S.day++;S.ap=S.maxAp;
+ if(S.gas>0)log("毒气还压在崖底，绿雾贴着岩缝往上爬。","bad");
+ if(S.plague>0)log("疫变仍在流行，这批病比往常更凶。","bad");
+ if(S.weak>0)log("朽掉的栈道还没换板，今天敢上来的人不多。","bad");
+ morning();
+ checkEnd();render();
+}
+
+function morning(){
+ if(r100()>=45)return;
+ const ev=rnd(8);
+ if(ev===0){S.gas=1+rnd(2);
+   log("📢 毒气上涌！崖底绿雾翻腾，采药暂不可行。","evt");
+   S.chron.push("第"+S.day+"天｜毒气上涌，整条栈道浸在绿雾里。");
+ }else if(ev===1){const l=Math.min(2,S.wood);S.wood-=l;
+   log("📢 夜风掀翻了料棚，"+l+"块木板坠下了悬崖。","evt");
+ }else if(ev===2){
+   if(S.built.pharmacy)log("📢 疫变的风声传来，药庐的烟熏正好压住了它。","evt");
+   else{S.plague=2;log("📢 鼠疫变了症状——这批病人更难治了（两天）。","evt");
+     S.chron.push("第"+S.day+"天｜鼠疫变异，药方失效了两天。");}
+ }else if(ev===3){S.rep+=3;
+   log("📢 奇迹：一个本已备好后事的病人，自己走下了栈道。","evt");
+   S.chron.push("第"+S.day+"天｜奇迹：备好后事的病人自己走下了栈道。");
+ }else if(ev===4){S.wood+=2;S.food+=2;
+   log("📢 崖顶降下吊篮：过路商队捎来木料和干粮。","evt");
+ }else if(ev===5){S.wood=Math.max(0,S.wood-1);S.weak=1;
+   log("📢 栈道木板朽了一截，今天敢上来的人少了。","evt");
+ }else if(ev===6&&S.patients.length<S.beds+2){const nm=pick(NAMES);
+   S.patients.push({n:nm,sev:3,from:"绳降"});S.gas=Math.max(S.gas,1);
+   log("📢 绳索吊下来一个病危的孩子——"+nm+"，只剩半口气。","evt");
+   S.chron.push("第"+S.day+"天｜绳降队吊上来病危的"+nm+"。");
+ }else if(ev===7&&S.built.ropestation){S.rope=Math.max(0,S.rope-1);
+   log("📢 绳降台的主绳磨断了，换绳费了一整段备绳。","evt");
+ }
+}
+
+function checkEnd(){
+ if(S.over)return;
+ if(S.rep<=0){S.over="lose";
+   endScreen("栈道冷了","声望归零。人们说那条栈道上只有死，没有医。<br>木板一块块松落，最后一块木牌也在风里断了线。<br>累计治愈 "+S.cured+" 人 · 殁者 "+S.dead+" 人 · 存续 "+S.day+" 天");
+ }else if(S.layers>=7&&S.cured>=40){S.over="win";
+   endScreen("奇迹还在继续","七层木楼层层叠叠挂在崖壁上，像一座悬在云里的城。<br>山下的人说：地面死透了，可悬崖上有人肯收人。<br>累计治愈 "+S.cured+" 人 · 殁者 "+S.dead+" 人 · 存续 "+S.day+" 天");
+ }
+}
+
+function endScreen(title,body){
+ let h="<h2>"+title+"</h2><p>"+body+"</p><h3 style='color:var(--accent);font-size:13px;margin:10px 0 6px'>本局编年史</h3><div class='chron'>";
+ h+=S.chron.map(c=>"<p>"+c+"</p>").join("");
+ h+="</div><button class='re' onclick=\"document.getElementById('mask').classList.remove('show');newGame()\">再开一局</button>";
+ document.getElementById("endbox").innerHTML=h;
+ document.getElementById("mask").classList.add("show");
+}
+
+function render(){
+ document.getElementById("d").textContent=S.day;
+ const v={ap:S.ap+"/"+S.maxAp,wood:S.wood,nail:S.nail,rope:S.rope,herb:S.herb,food:S.food,rep:S.rep,cured:S.cured,dead:S.dead,layer:S.layers+"/7",bed:S.beds};
+ for(const k in v)document.getElementById("v_"+k).textContent=v[k];
+ document.getElementById("st_rep").classList.toggle("warn",S.rep<=3);
+ document.getElementById("st_dead").classList.toggle("warn",S.dead>0);
+ let fx="";
+ if(S.gas>0)fx+="<span class='fx'>☠ 毒气 "+S.gas+"天</span>";
+ if(S.plague>0)fx+="<span class='fx'>☣ 疫变 "+S.plague+"天</span>";
+ if(S.weak>0)fx+="<span class='fx'>🪵 栈道朽坏</span>";
+ document.getElementById("fx").innerHTML=fx;
+ document.getElementById("a_herb").disabled=S.ap<1||S.gas>0||S.over;
+ document.getElementById("a_trade").disabled=S.ap<1||S.rep<2||S.over;
+ document.getElementById("a_rescue").disabled=S.ap<1||!S.built.ropestation||S.rope<1||S.patients.length>=S.beds+2||S.over;
+ document.getElementById("a_build").disabled=S.ap<1||S.over;
+ document.getElementById("pcount").textContent="("+S.patients.length+"/"+(S.beds+2)+")";
+ const pd=document.getElementById("patients");
+ if(!S.patients.length)pd.innerHTML='<div class="notice">栈道上暂时没人。风声比人声大。</div>';
+ else pd.innerHTML=S.patients.map((p,i)=>
+  '<div class="pt"><div><b>'+p.n+'</b> <span class="tag">'+p.from+'</span><br><span class="sev">'+"病情："+"█".repeat(p.sev)+"░".repeat(5-p.sev)+'</span></div>'+
+  '<button class="treat" '+(S.ap>0&&S.herb>=2&&!S.over?"":"disabled")+' onclick="treat('+i+')">治疗(草药×2)</button></div>').join("");
+ if(document.getElementById("bmenu").classList.contains("show"))renderBuild();
+ const lg=document.getElementById("log");
+ lg.innerHTML=(S._log||[]).map(l=>'<p class="'+(l.cls||"")+'">'+l.t+"</p>").join("");
+ drawScene();
+}
+
+function drawScene(){
+ const W=380,H=470;
+ let s='<svg viewBox="0 0 '+W+" "+H+'" xmlns="http://www.w3.org/2000/svg">';
+ s+='<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">'+
+   '<stop offset="0" stop-color="#12202e"/><stop offset="1" stop-color="#0a1119"/></linearGradient></defs>';
+ s+='<rect width="'+W+'" height="'+H+'" fill="url(#sky)"/>';
+ // 远山
+ s+='<path d="M0,300 L60,250 L110,295 L170,240 L230,290 L260,270 L260,470 L0,470 Z" fill="#0d1620"/>';
+ s+='<path d="M0,330 L80,285 L140,325 L210,280 L260,315 L260,470 L0,470 Z" fill="#101b27"/>';
+ // 崖体（右侧）
+ s+='<path d="M300,0 L'+W+',0 L'+W+','+H+' L230,'+H+' L245,380 L235,300 L250,210 L238,120 L255,40 Z" fill="#232f3c" stroke="#2e3d4d" stroke-width="1"/>';
+ s+='<path d="M262,60 L248,140 M255,230 L242,320 M248,400 L236,455" stroke="#1b2530" stroke-width="2" fill="none"/>';
+ // 毒气带
+ if(S.gas>0){s+='<rect x="0" y="'+(H-90)+'" width="'+W+'" height="90" fill="#5da24a" opacity="0.28"/>';
+  s+='<rect x="0" y="'+(H-120)+'" width="'+W+'" height="40" fill="#5da24a" opacity="0.16"/>';}
+ // 绳索
+ if(S.built.ropestation){
+  const bottomY=430-(S.layers-1)*56;
+  s+='<line x1="315" y1="0" x2="200" y2="'+(bottomY-6)+'" stroke="#c8b28a" stroke-width="1.4" opacity="0.85"/>';
+  s+='<circle cx="200" cy="'+(bottomY-6)+'" r="3.5" fill="#c8b28a"/>';
+ }
+ // 平台：从下往上
+ for(let i=0;i<S.layers;i++){
+  const y=430-i*56, ex=290-i*6, px=ex-150+i*10; // 平台左端
+  // 支撑斜杆
+  s+='<line x1="'+(px+18)+'" y1="'+(y+26)+'" x2="'+(px+2)+'" y2="'+y+'" stroke="#6e4f2c" stroke-width="2.5"/>';
+  s+='<line x1="'+(px+70)+'" y1="'+(y+26)+'" x2="'+(px+55)+'" y2="'+y+'" stroke="#6e4f2c" stroke-width="2.5"/>';
+  // 平台板
+  s+='<rect x="'+px+'" y="'+y+'" width="'+(ex-px)+'" height="7" rx="2" fill="#8a5c30"/>';
+  s+='<rect x="'+px+'" y="'+(y+7)+'" width="'+(ex-px)+'" height="3" fill="#5f3d1e"/>';
+  // 小屋
+  const hw=54,hx=ex-hw-8,hy=y-40;
+  s+='<rect x="'+hx+'" y="'+hy+'" width="'+hw+'" height="40" fill="#7a5230" stroke="#4a2f16" stroke-width="1"/>';
+  s+='<path d="M'+(hx-5)+','+hy+' L'+(hx+hw/2)+','+(hy-16)+' L'+(hx+hw+5)+','+hy+' Z" fill="#5f3d1e"/>';
+  s+='<rect x="'+(hx+hw/2-6)+'" y="'+(hy+16)+'" width="12" height="24" fill="#3a2410"/>';
+  if((S.cured+i)%2===0){s+='<rect x="'+(hx+8)+'" y="'+(hy+8)+'" width="9" height="9" fill="#e0b05c" opacity="0.9"/>';}
+  // 层名
+  s+='<text x="'+(px+4)+'" y="'+(y-4)+'" fill="#8aa0b5" font-size="10">'+LNAMES[i]+'</text>';
+  // 病人点
+  const here=Math.min(S.patients.length-i*2,2);
+  for(let k=0;k<Math.max(0,here);k++){
+   s+='<circle cx="'+(px+14+k*13)+'" cy="'+(y-5)+'" r="3.5" fill="#d8e4ef"/>';
+  }
+ }
+ // 栈道延伸示意
+ if(S.built.walkway){const y=430;const ex=290;
+  s+='<rect x="'+(ex-150-46)+'" y="'+y+'" width="46" height="6" rx="2" fill="#8a5c30" stroke="#5f3d1e" stroke-width="0.6"/>';
+  s+='<circle cx="'+(ex-150-30)+'" cy="'+(y-5)+'" r="3" fill="#8aa0b5"/>';}
+ // 星
+ for(let k=0;k<14;k++){s+='<circle cx="'+((k*53+31)%340)+'" cy="'+((k*37+11)%180)+'" r="'+(k%3===0?1.4:0.8)+'" fill="#9db4c9" opacity="0.5"/>';}
+ // 底部标题
+ s+='<text x="12" y="24" fill="#e0b05c" font-size="13" letter-spacing="2">悬崖医馆 · '+LNAMES[S.layers-1]+'</text>';
+ s+='<text x="12" y="40" fill="#5f7288" font-size="10">地面=死亡禁区 · 毒气线在崖底</text>';
+ s+="</svg>";
+ document.getElementById("scene").innerHTML=s;
+}
+
+newGame();
+</script>
+</body>
+</html>
